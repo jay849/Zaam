@@ -1,3 +1,4 @@
+// back-end
 import http from "http";
 import SocketIO from "socket.io";
 import express from "express";
@@ -16,12 +17,17 @@ const httpServer = http.createServer(app);
 const wsServer = SocketIO(httpServer);
 
 wsServer.on("connection", socket => {
-    // console.log(socket);
-    socket.on("enter_room", (msg, done) => {
-        console.log(msg);
+    socket.onAny((event) => {
+        console.log(`Socket Event: ${event}`);
+      });
+    socket.on("enter_room", (roomName, done) => {
+        console.log(socket.id);
+        console.log(socket.rooms);
+        socket.join(roomName);
+        console.log(socket.rooms);
         setTimeout(() => {
-            done();
-        }, 10000);
+            done("hello from the backend");
+        }, 15000);
     });
 });
 
