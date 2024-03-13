@@ -29,7 +29,7 @@ async function getCameras() {
                 option.selected = true;
             }
             camerasSelect.appendChild(option);
-        })
+        });
     } catch (e) {
         console.log(e);
     }
@@ -38,11 +38,11 @@ async function getCameras() {
 async function getMedia(deviceId) {
     const initialConstrains = {
         audio: true,
-        video: { facingMode: "user"},
+        video: { facingMode: "user" },
     };
     const cameraConstraints = {
         audio: true,
-        video: { deviceId: { exact: deviceId}}
+        video: { deviceId: { exact: deviceId }}
     }
     try {
         myStream = await navigator.mediaDevices.getUserMedia(
@@ -101,18 +101,20 @@ camerasSelect.addEventListener("input", handleCameraChange);
 const welcome  = document.getElementById("welcome");
 const welcomeForm = welcome.querySelector("form");
 
-async function startMedia() {
+async function initCall() {
     welcome.hidden = true;
     call.hidden = false;
     await getMedia();
     makeConnection();
 }
 
-function handleWelcomeSubmit(event) {
+async function handleWelcomeSubmit(event) {
     event.preventDefault();
     const input = welcome.querySelector("input");
     // console.log(input.value);
-    socket.emit("join_room", input.value, startMedia);
+    await initCall();
+    getMedia();
+    socket.emit("join_room", input.value);
     roomName = input.value;
     input.value = "";
 }
@@ -121,26 +123,36 @@ welcomeForm.addEventListener("submit", handleWelcomeSubmit);
 
 
 // Socket Code
+// browser #1
 socket.on("welcome", async () => {
-    // console.log("someone joined!!");
+    console.log("someone joined!!");
     const offer = await myPeerConnection.createOffer();
-    // console.log(offer);
+    console.log(offer);
     myPeerConnection.setLocalDescription(offer);
     console.log("sent the offer");
     socket.emit("offer", offer, roomName);
 });
 
-socket.on("offer", (offer) => {
-    // console.log(offer);
-    myPeerConnection.setRemoteDescription(offer);
+// browser #2
+socket.on("offer", async(offer) => {
+    console.log(offer);
+    myPeerConnection.setRemoteDescription(offer);  // browser#1에서 받아 온 것
+    const answer = await myPeerConnection.createAnswer();
+    console.log(answer);
+    myPeerConnection.setLocalDescription(answer);
+    socket.emit("answer", answer, roomName);
+});
+
+socket.on("answer", (answer) => {
+    myPeerConnection.setRemoteDescription(answer);  // browser#2에서 받아 온 것
 });
 
 // RTC Code
 
 function makeConnection() {
     myPeerConnection = new RTCPeerConnection();
-    // console.log(myStream.getTracks());
+    console.log(myStream.getTracks());
     myStream
         .getTracks()
-        .forEach((track) => myPeerConnection.addTrack(track, myStream));
+        .forEach((track) => {myPeerConnection.addTrack(track, myStream)});
 }
