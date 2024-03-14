@@ -13,6 +13,7 @@ let muted = false;
 let cameraOff = false;
 let roomName;
 let myPeerConnection;
+let myDataChannel;    // chat 기능 추가
 
 async function getCameras() {
     try {
@@ -132,9 +133,12 @@ welcomeForm.addEventListener("submit", handleWelcomeSubmit);
 
 
 // Socket Code
-// browser #1
+// Peer #1
 socket.on("welcome", async () => {
     // console.log("someone joined!!");
+    myDataChannel = myPeerConnection.createDataChannel("chat");
+    myDataChannel.addEventListener("message", (event) => console.log(event.data));
+    console.log("made data channel");
     const offer = await myPeerConnection.createOffer();
     // console.log(offer);
     myPeerConnection.setLocalDescription(offer);
@@ -142,8 +146,12 @@ socket.on("welcome", async () => {
     socket.emit("offer", offer, roomName);
 });
 
-// browser #2
+// Peer #2
 socket.on("offer", async (offer) => {
+    myPeerConnection.addEventListener("datachannel", (event) => {
+        myDataChannel = event.channel;
+        myDataChannel.addEventListener("message", (event) => console.log(event.data));
+    });
     console.log("received the offer");
     myPeerConnection.setRemoteDescription(offer);  // browser#1에서 받아 온 것
     const answer = await myPeerConnection.createAnswer();
