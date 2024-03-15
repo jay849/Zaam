@@ -5,11 +5,8 @@ const muteBtn = document.getElementById("mute");
 const cameraBtn = document.getElementById("camera");
 const camerasSelect = document.getElementById("cameras");
 const call = document.getElementById("call");
-const chat = document.getElementById("chat");
-const msgForm = chat.querySelector("form");
 
 call.hidden = true;
-chat.hidden = true;
 
 let myStream;
 let muted = false;
@@ -117,12 +114,8 @@ const welcomeForm = welcome.querySelector("form");
 async function initCall() {
     welcome.hidden = true;
     call.hidden = false;
-    chat.hidden = false;
     await getMedia();
-    if (!myPeerConnection) { // 이미 연결이 설정되어 있지 않은 경우에만 연결을 만듦
-        makeConnection();
-    }
-    msgForm.addEventListener("submit", handelMessageSubmit);
+    makeConnection();
 }
 
 async function handleWelcomeSubmit(event) {
@@ -176,9 +169,7 @@ socket.on("answer", (answer) => {
 socket.on("ice", (ice) => {
     console.log("received candidate")
     myPeerConnection.addIceCandidate(ice);
-});
-
-socket.on("new_message", addMessage);
+})
 
 // RTC Code
 
@@ -199,16 +190,9 @@ function makeConnection() {
     // console.log(myStream.getTracks());
     myPeerConnection.addEventListener("icecandidate", handleIce);
     myPeerConnection.addEventListener("addstream", handleAddStream);
-    myPeerConnection.addEventListener("datachannel", handleDataChannel); // 데이터 채널 이벤트 핸들러 추가
     myStream
         .getTracks()
         .forEach((track) => { myPeerConnection.addTrack(track, myStream) });
-}
-
-// 데이터 채널 이벤트 핸들러 추가
-function handleDataChannel(event) {
-    myDataChannel = event.channel;
-    myDataChannel.addEventListener("message", (event) => console.log(event.data));
 }
 
 function handleIce(data) {
@@ -226,24 +210,4 @@ function handleAddStream(data) {
     // peersStream.srcObject = data.stream;
     const peerFace = document.getElementById("peerFace");
     peerFace.srcObject = data.stream;
-}
-
-
-// chat
-
-function addMessage(message) {
-    const ul = chat.querySelector("ul");
-    const li = document.createElement("li");
-    li.innerText = message;
-    ul.appendChild(li);
-}
-
-function handelMessageSubmit(event) {
-    event.preventDefault();
-    const input = chat.querySelector("#msg input");
-    const value = input.value;
-    socket.emit("new_message", input.value, roomName, () => {
-        addMessage(`You: ${value}`);
-    });
-    input.value="";
 }
